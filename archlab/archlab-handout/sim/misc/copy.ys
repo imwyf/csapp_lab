@@ -1,0 +1,56 @@
+# 指令地址从0开始
+    .pos 0
+    irmovq stack,%rsp
+    call main
+    halt
+
+.align 8
+# Source block
+src:
+.quad 0x00a
+.quad 0x0b0
+.quad 0xc00
+# Destination block
+dest:
+.quad 0x111
+.quad 0x222
+.quad 0x333
+
+main: 
+    irmovq src, %rdi
+    irmovq dest, %rsi
+    irmovq $3, %rcx 
+    call copy_block
+    ret
+
+# long copy_block(long *src, long *dest, long len)
+copy_block:
+    pushq %r8   # 因为等下要用到这个，所以我们要记得恢复原样
+    pushq %r9
+    pushq %r10  
+    pushq %rbx  # val = rbx
+    xorq %rax,%rax  # result = rax = 0
+    irmovq $8,%r8
+    irmovq $1,%r9
+    irmovq $0,%r10
+    
+loop:
+    subq %r10,%rcx   # (rcx)len <= 0 -> end
+    jle End
+    mrmovq (%rdi),%rbx   #	long val = *src;
+    rmmovq %rbx,(%rsi)   # *dest = val;
+    xorq %rbx,%rax  # result ^= val;
+    addq %r8,%rdi   # src++
+    addq %r8,%rsi   # dest++
+    subq %r9,%rcx   # len--;
+    jmp loop
+
+End:
+    popq %rbx
+    popq %r10
+    popq %r9
+    popq %r8
+    ret 
+
+.pos 0x200
+stack:
